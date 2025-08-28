@@ -1,36 +1,34 @@
 # story_expander.py
-import openai
-
-# Load your OpenAI key (or Gemini later via config file)
+from openai import OpenAI
 from utils.config import OPENAI_API_KEY
 
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-def expand_story(story: str, duration: int):
+def expand_story(story, duration):
     """
-    Expands a short story into a scene-based script matching video duration.
-    Returns a list of scene descriptions.
+    Expands a short user-provided story into multiple scenes.
+    Ensures total script length matches approximate duration.
     """
-    # Assume each scene ~5-8 seconds
-    num_scenes = max(1, duration // 6)
-
     prompt = f"""
-    You are a creative video scriptwriter.
-    Expand the following short story into {num_scenes} scenes.
-    Each scene should be 2-3 sentences, descriptive, and visual.
-    Keep characters consistent.
+    You are a script writer. Expand the following short story into
+    multiple cinematic scenes for a video of {duration} seconds.
+    Keep each scene short (1–3 sentences). 
 
-    Story: "{story}"
+    Story: {story}
     """
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
+        messages=[
+            {"role": "system", "content": "You are a helpful script writer."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
     )
 
-    raw_text = response["choices"][0]["message"]["content"].strip()
+    # Extract text response
+    expanded_text = response.choices[0].message.content.strip()
+
     # Split scenes by line breaks
-    scenes = [s.strip() for s in raw_text.split("\n") if s.strip()]
-    
+    scenes = [s.strip() for s in expanded_text.split("\n") if s.strip()]
     return scenes
